@@ -1,0 +1,39 @@
+server:
+  port: ${SERVER_PORT:6060}
+spring:
+  application:
+    name: ${APPLICATION_NAME:user-service}
+  datasource:
+    url: jdbc:mysql://${MYSQL_SERVICE:localhost}:3306/users?createDatabaseIfNotExist=true
+    username: root
+    password: ${MYSQL_ROOT_PASSWORD:moopi}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+rsa:
+  public-key: classpath:certs/public.pem
+  private-key: classpath:certs/private.pem
+
+
+eureka:
+  client:
+    register-with-eureka: ${REGISTER_WITH_EUREKA:true}
+    service-url:
+      defaultZone: ${DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true

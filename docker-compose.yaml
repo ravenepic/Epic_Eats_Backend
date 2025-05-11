@@ -1,0 +1,216 @@
+services:
+
+  registry-service:
+    build: ./registry-service
+    container_name: registry-service
+
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: "curl --fail --silent localhost:8761/actuator/health/readiness | grep UP || exit 0"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+
+
+
+      SERVER_PORT: 8761
+      APPLICATION_NAME: registry-service
+      REGISTER_WITH_EUREKA: false
+      FETCH_REGISTRY: false
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8765:8765"
+    depends_on:
+      registry-service:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8765/actuator/health/readiness | grep UP || exit 0"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SERVER_PORT: 8765
+      APPLICATION_NAME: api-gateway
+      REGISTER_WITH_EUREKA: true
+      DEFAULT_ZONE: http://registry-service:8761/eureka/
+
+  restaurantdb:
+    image: mysql
+    container_name: restaurantdb
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "restaurantdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - '3308:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: restaurant
+      MYSQL_DATABASE: restaurant
+  restaurant-service:
+    build: ./restaurant-service
+    container_name: restaurant-service
+    ports:
+      - "9090:9090"
+    depends_on:
+      restaurantdb:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:9090/actuator/health/readiness | grep UP || exit 0"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SERVER_PORT: 9090
+      APPLICATION_NAME: restaurant-service
+      REGISTER_WITH_EUREKA: true
+      DEFAULT_ZONE: http://registry-service:8761/eureka/
+      MYSQL_SERVICE: restaurantdb
+      MYSQL_ROOT_PASSWORD: restaurant
+
+  orderdb:
+    image: mysql
+    container_name: orderdb
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "orderdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - '3310:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: order
+      MYSQL_DATABASE: order
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "9096:9096"
+    depends_on:
+      registry-service:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      restaurant-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 9096
+      APPLICATION_NAME: order-service
+      REGISTER_WITH_EUREKA: true
+      DEFAULT_ZONE: http://registry-service:8761/eureka/
+      MYSQL_SERVICE: orderdb
+      MYSQL_ROOT_PASSWORD: order
+
+
+  paymentdb:
+    image: mysql
+    container_name: paymentdb
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "paymentdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: payment
+      MYSQL_DATABASE: payment
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "9091:9091"
+    depends_on:
+      paymentdb:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      restaurant-service:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:9091/actuator/health/readiness | grep UP || exit 0"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SERVER_PORT: 9091
+      APPLICATION_NAME: payment-service
+      REGISTER_WITH_EUREKA: true
+      DEFAULT_ZONE: http://registry-service:8761/eureka
+      MYSQL_SERVICE: paymentdb
+      MYSQL_ROOT_PASSWORD: payment
+#
+
+
+
+
+
+  userdb:
+    image: mysql
+    container_name: userdb
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "userdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - '3309:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: user
+      MYSQL_DATABASE: user
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "6060:6060"
+    depends_on:
+      userdb:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:6060/actuator/health/readiness | grep UP || exit 0"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SERVER_PORT: 6060
+      APPLICATION_NAME: user-service
+      REGISTER_WITH_EUREKA: true
+      DEFAULT_ZONE: http://registry-service:8761/eureka/
+      MYSQL_SERVICE: userdb
+      MYSQL_ROOT_PASSWORD: user
+
+
+
+

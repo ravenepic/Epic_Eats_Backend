@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:9096}
+spring:
+  application:
+    name: ${APPLICATION_NAME:order-service}
+  datasource:
+    url: jdbc:mysql://${MYSQL_SERVICE:localhost}:3306/orders?createDatabaseIfNotExist=true
+    username: root
+    password: ${MYSQL_ROOT_PASSWORD:moopi}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+  kafka:
+    consumer:
+      bootstrap-servers:
+        - "localhost:19092"
+        - "localhost:29092"
+        - "localhost:39092"
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
